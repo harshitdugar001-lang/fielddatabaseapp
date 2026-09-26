@@ -357,13 +357,69 @@ function renderFilters(){
 }
 
 window.setFilter=x=>{activeFilter=x;render()};
+window.viewRecord = async id => {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  const d = r.data || {};
+  const pairs = [
+    ['Type', TYPES[d.type]?.label || d.type],
+    ['Contact Person', d.personName],
+    ['Phone', d.phone],
+    ['Alternate Phone', d.altPhone],
+    ['Email', d.email],
+    ['Address', d.address],
+    ['City', d.city],
+    ['Area', d.area],
+    ['State', d.state],
+    ['Country', d.country],
+    ['Business Type', d.businessType],
+    ['Product', d.productCategory || d.product],
+    ['Process', d.process],
+    ['Rent', d.rent],
+    ['Advance', d.advance],
+    ['MOQ', d.moq],
+    ['Rate', d.rate],
+    ['Notes', d.notes]
+  ];
 
-window.viewRecord=async id=>{
-  const r=records.find(x=>x.id===id);
-  if(!r)return;
-  const d=r.data||{},pairs=[['Type',TYPES[d.type]?.label||d.type],['Contact Person',d.personName],['Phone',d.phone],['Alternate Phone',d.altPhone],['Email',d.email],['Address',d.address],['City',d.city],['Area',d.area],['State',d.state],['Country',d.country],['Business Type',d.businessType],['Product',d.productCategory||d.product],['Process',d.process],['Rent',d.rent],['Advance',d.advance],['MOQ',d.moq],['Rate',d.rate],['Notes',d.notes]],details=pairs.filter(([,v])=>v).map(([k,v])=>`<div>${esc(k)}</div><div>${esc(v)}</div>`).join('');
-  document.getElementById('detailTitle').textContent=getTitle(r);
-  document.getElementById('detailBody').innerHTML=`<div class="share-actions"><button class="btn primary" type="button" onclick="shareRecord('${id}')">Share</button><button class="btn" type="button" onclick="editRecord('${id}');closeModal('detailModal')">Edit</button><button class="btn danger" type="button" onclick="deleteRecord('${id}')">Delete</button></div><div class="detail-block"><h4>Record details</h4><div class="kv">${details||'<div>No details yet.</div>'}</div></div>${d.qualities?.length?`<div class="detail-block" style="margin-top:12px"><h4>Fabric qualities</h4>${d.qualities.map(q=>`<div>${esc(q.name)} — ${esc(q.gsm)} GSM — ${esc(q.rate)} / ${esc(q.unit)} — MOQ ${esc(q.moq)}</div>`).join('')}</div>`:''}<div class="detail-block" style="margin-top:12px"><h4>Photos and videos (${(d.media||[]).length})</h4><div class="gallery">${(d.media||[]).map(m=>m.type?.startsWith('image/')?`<img src="${esc(m.localUrl\vert{}\vert{}m.url)}" alt="${esc(m.name)}">`:`<video controls src="${esc(m.localUrl||m.url)}"></video>`).join('')||'No media attached.'}</div></div>`;
+  const details = pairs
+    .filter(([, v]) => v)
+    .map(([k, v]) => '<div>' + esc(k) + '</div><div>' + esc(v) + '</div>')
+    .join('');
+
+  let qualitiesBlock = '';
+  if (d.qualities && d.qualities.length) {
+    const qRows = d.qualities
+      .map(q => '<div>' + esc(q.name) + ' - ' + esc(q.gsm) + ' GSM - ' + esc(q.rate) + ' / ' + esc(q.unit) + ' - MOQ ' + esc(q.moq) + '</div>')
+      .join('');
+    qualitiesBlock = '<div class="detail-block" style="margin-top:12px"><h4>Fabric qualities</h4>' + qRows + '</div>';
+  }
+
+  const mediaItems = d.media || [];
+  let galleryContent = 'No media attached.';
+  if (mediaItems.length) {
+    galleryContent = mediaItems
+      .map(m => {
+        const src = esc(m.localUrl || m.url);
+        if (m.type && m.type.startsWith('image/')) {
+          return '<img src="' + src + '" alt="' + esc(m.name) + '">';
+        }
+        return '<video controls src="' + src + '"></video>';
+      })
+      .join('');
+  }
+
+  document.getElementById('detailTitle').textContent = getTitle(r);
+  document.getElementById('detailBody').innerHTML =
+    '<div class="share-actions">' +
+      '<button class="btn primary" type="button" onclick="shareRecord(\'' + id + '\')">Share</button>' +
+      '<button class="btn" type="button" onclick="editRecord(\'' + id + '\');closeModal(\'detailModal\')">Edit</button>' +
+      '<button class="btn danger" type="button" onclick="deleteRecord(\'' + id + '\')">Delete</button>' +
+    '</div>' +
+    '<div class="detail-block"><h4>Record details</h4><div class="kv">' + (details || '<div>No details yet.</div>') + '</div></div>' +
+    qualitiesBlock +
+    '<div class="detail-block" style="margin-top:12px"><h4>Photos and videos (' + mediaItems.length + ')</h4><div class="gallery">' + galleryContent + '</div></div>';
+
   openModal('detailModal');
 };
 
