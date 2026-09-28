@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#111827" />
+<link rel="manifest" href="./manifest.json" />
 <title>DATABASE — Business & Contact Manager</title>
 <style>
 :root{--bg:#f4f6f9;--card:#fff;--text:#101828;--muted:#667085;--line:#e4e7ec;--primary:#111827;--soft:#f2f4f7;--success:#027a48;--danger:#b42318;--warning:#b54708;--radius:16px}
@@ -27,7 +28,7 @@
       </div>
     </div>
     <div class="searchbar">
-      <input id="search" placeholder="Search company, person, product, quality, city, address..." oninput="render()">
+      <input id="search" placeholder="Search company, person, product, quality, rate, city, address..." oninput="render()">
       <button class="btn primary" type="button" onclick="openTypePicker()">+ Add</button>
     </div>
   </div>
@@ -165,10 +166,22 @@ function typePicker(){
 }
 typePicker();
 
-function input(name,label,value='',opts={}){const full=opts.full?' full':'';const type=opts.type||'text';return '<div class="field'+full+'"><label>'+esc(label)+'</label><input type="'+type+'" id="f_'+name+'" value="'+esc(value)+'" placeholder="'+esc(opts.ph||'')+'" '+(opts.accept?'accept="'+esc(opts.accept)+'"':'')+'></div>'}
-function select(name,label,value,options,full=false){return '<div class="field'+(full?' full':'')+'"><label>'+esc(label)+'</label><select id="f_'+name+'">'+options.map(o=>'<option value="'+esc(o)+'" '+(value===o?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>'}
-function textarea(name,label,value='',full=false,ph=''){return '<div class="field'+(full?' full':'')+'"><label>'+esc(label)+'</label><textarea id="f_'+name+'" placeholder="'+esc(ph)+'">'+esc(value)+'</textarea></div>'}
-function locationFields(d={}){return '<div class="section"><h3>📍 Location</h3><div class="formgrid">'+input('address','Full Address',d.address||'',{full:true,ph:'Street / market / building / landmark'})+input('city','City / Town',d.city||'',{ph:'Any city or town'})+input('state','State / Region',d.state||'')+input('country','Country',d.country||'')+input('area','Area / Locality',d.area||'')+input('pincode','Postal / ZIP Code',d.pincode||'')+input('mapLink','Google Maps Link',d.mapLink||'',{full:true,type:'url'})+input('latitude','Latitude',d.latitude||'')+input('longitude','Longitude',d.longitude||'')+'</div></div>'}
+function input(name,label,value='',opts={}){const full=opts.full?' full':'';const type=opts.type||'text';return '<div class="field'+full+'"><label>'+esc(label)+'</label><input type="'+type+'" id="f_'+name+'" data-field="'+esc(name)+'" value="'+esc(value)+'" placeholder="'+esc(opts.ph||'')+'" '+(opts.accept?'accept="'+esc(opts.accept)+'"':'')+'></div>'}
+function select(name,label,value,options,full=false){return '<div class="field'+(full?' full':'')+'"><label>'+esc(label)+'</label><select id="f_'+name+'" data-field="'+esc(name)+'">'+options.map(o=>'<option value="'+esc(o)+'" '+(value===o?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>'}
+function textarea(name,label,value='',full=false,ph=''){return '<div class="field'+(full?' full':'')+'"><label>'+esc(label)+'</label><textarea id="f_'+name+'" data-field="'+esc(name)+'" placeholder="'+esc(ph)+'">'+esc(value)+'</textarea></div>'}
+
+function locationFields(d={}){
+  return '<div class="section"><h3>📍 Location & Rate</h3><div class="formgrid">' +
+    input('address','Full Address',d.address||'',{full:true,ph:'Street / market / building / landmark'}) +
+    input('city','City / Town',d.city||'',{ph:'Any city or town'}) +
+    input('state','State / Region',d.state||'') +
+    input('country','Country',d.country||'') +
+    input('pincode','Postal / ZIP Code',d.pincode||'') +
+    input('rate','Rate',d.rate||'',{ph:'Price / rate details'}) +
+    input('mapLink','Google Maps Link',d.mapLink||'',{type:'url',ph:'https://maps.google.com/...'}) +
+  '</div></div>';
+}
+
 function contactFields(d={}){return '<div class="section"><h3>👤 Contact</h3><div class="formgrid">'+input('companyName','Company / Person Name',d.companyName||d.spaceName||'',{full:true})+input('personName','Contact Person',d.personName||'')+input('phone','Phone',d.phone||'')+input('altPhone','Alternate Phone',d.altPhone||'')+input('email','Email',d.email||'',{type:'email'})+input('website','Website / Instagram / Link',d.website||d.link||'',{full:true})+'</div></div>'}
 function businessType(d,type='Manufacturer'){return '<div class="section"><h3>🏷️ Business Type</h3><div class="formgrid">'+select('businessType','This company is',d.businessType||type,['Manufacturer','Wholesaler','Trader','Agent','Job Worker','Brand','Retailer','Contractor','Other'])+input('category','Main Category',d.category||'')+'</div></div>'}
 function mediaSection(){return '<div class="section"><h3>📸 Photos & Videos</h3><div class="media-drop"><div>Select photos/videos from your phone or laptop.</div><input id="mediaInput" class="file-btn" type="file" accept="image/*,video/*" multiple><div class="meta" style="margin-top:7px">Files save on this device first; cloud upload is attempted when connected.</div></div><div id="mediaList" class="media-list"></div></div>'}
@@ -241,7 +254,7 @@ function buildVcfCard(r){
   if (d.altPhone) lines.push('TEL;TYPE=WORK,VOICE:' + String(d.altPhone).trim());
   if (d.email) lines.push('EMAIL;TYPE=PREF,INTERNET:' + String(d.email).trim());
   if (d.address || d.city || d.state || d.pincode || d.country) {
-    const street = [d.address, d.area].filter(Boolean).join(', ');
+    const street = d.address || '';
     lines.push('ADR;TYPE=WORK:;;' + cleanVcfText(street) + ';' + cleanVcfText(d.city) + ';' + cleanVcfText(d.state) + ';' + cleanVcfText(d.pincode) + ';' + cleanVcfText(d.country));
   }
   if (d.website || d.mapLink) lines.push('URL:' + String(d.website || d.mapLink).trim());
@@ -358,6 +371,16 @@ window.openForm=async(type,id=null)=>{
   }
   document.getElementById('formTitle').textContent=(id?'Edit ':'Add ')+TYPES[type].label;
   document.getElementById('formBody').innerHTML=formHtml(type,d);
+
+  const rateInputs = document.querySelectorAll('#formBody input[data-field="rate"]');
+  rateInputs.forEach(inp => {
+    inp.addEventListener('input', () => {
+      rateInputs.forEach(other => {
+        if (other !== inp) other.value = inp.value;
+      });
+    });
+  });
+
   const mInput=document.getElementById('mediaInput');
   mInput.addEventListener('change',e=>{
     draftMedia=[...draftMedia,...[...e.target.files].map(file=>({id:uid(),name:file.name,type:file.type,size:file.size,file}))];
@@ -379,7 +402,10 @@ function collectFields(){
   const d={};
   document.querySelectorAll('#formBody input[id^="f_"],#formBody select[id^="f_"],#formBody textarea[id^="f_"]').forEach(el=>{
     const k=el.id.slice(2);
-    if(!/^q_(name|gsm|rate|unit|moq|colors|designs|width|notes)_\d+$/.test(k)&&k!=='mediaInput')d[k]=el.value.trim();
+    if(!/^q_(name|gsm|rate|unit|moq|colors|designs|width|notes)_\d+$/.test(k)&&k!=='mediaInput'){
+      const val=el.value.trim();
+      if(val || !d[k]) d[k]=val;
+    }
   });
   d.qualities=qualityDraft.map((q,i)=>({
     name:document.getElementById('f_q_name_'+i)?.value?.trim()||'',
@@ -396,7 +422,7 @@ function collectFields(){
 }
 
 function tagList(type,d){
-  const arr=[TYPES[type]?.label,d.city,d.area,d.businessType,d.buyerType,d.productCategory,d.process,d.trimCategory,d.printType,d.role,d.category];
+  const arr=[TYPES[type]?.label,d.city,d.rate?('Rate: '+d.rate):'',d.businessType,d.buyerType,d.productCategory,d.process,d.trimCategory,d.printType,d.role,d.category];
   (d.qualities||[]).slice(0,2).forEach(q=>arr.push(q.name));
   return [...new Set(arr.filter(Boolean))].slice(0,7);
 }
@@ -426,7 +452,7 @@ function searchable(r){return JSON.stringify(r.data).toLowerCase()+' '+(TYPES[r.
 
 function cardHtml(r){
   const d=r.data||{},media=d.media||[],thumb=media.find(x=>x.type?.startsWith('image/'));
-  return '<div class="card">'+(thumb?'<img class="thumb" src="'+esc(thumb.localUrl||thumb.url)+'">':'<div class="placeholder">'+(TYPES[d.type]?.icon||'📌')+'</div>')+'<h3>'+esc(getTitle(r))+'</h3><div class="meta">'+esc(TYPES[d.type]?.label||d.type||'Record')+(d.city?' • '+esc(d.city):'')+(d.area?' • '+esc(d.area):'')+'</div>'+(d.phone?'<div class="meta" style="margin-top:5px">☎ '+esc(d.phone)+'</div>':'')+(d.address?'<div class="meta" style="margin-top:4px">📍 '+esc(d.address)+'</div>':'')+'<div class="tags">'+tagList(d.type,d).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div><div class="card-actions"><button class="btn small" type="button" onclick="viewRecord(\''+r.id+'\')">Open</button><button class="btn small" type="button" onclick="editRecord(\''+r.id+'\')">Edit</button><button class="btn small" type="button" onclick="saveToPhoneContact(\''+r.id+'\')">📲 Phone</button></div></div>';
+  return '<div class="card">'+(thumb?'<img class="thumb" src="'+esc(thumb.localUrl||thumb.url)+'">':'<div class="placeholder">'+(TYPES[d.type]?.icon||'📌')+'</div>')+'<h3>'+esc(getTitle(r))+'</h3><div class="meta">'+esc(TYPES[d.type]?.label||d.type||'Record')+(d.city?' • '+esc(d.city):'')+(d.rate?' • Rate: '+esc(d.rate):'')+'</div>'+(d.phone?'<div class="meta" style="margin-top:5px">☎ '+esc(d.phone)+'</div>':'')+(d.address?'<div class="meta" style="margin-top:4px">📍 '+esc(d.address)+'</div>':'')+'<div class="tags">'+tagList(d.type,d).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div><div class="card-actions"><button class="btn small" type="button" onclick="viewRecord(\''+r.id+'\')">Open</button><button class="btn small" type="button" onclick="editRecord(\''+r.id+'\')">Edit</button><button class="btn small" type="button" onclick="saveToPhoneContact(\''+r.id+'\')">📲 Phone</button></div></div>';
 }
 
 function renderFilters(){
@@ -454,9 +480,9 @@ window.viewRecord = async id => {
     ['Email', d.email],
     ['Address', d.address],
     ['City', d.city],
-    ['Area', d.area],
     ['State', d.state],
     ['Country', d.country],
+    ['Postal / ZIP Code', d.pincode],
     ['Business Type', d.businessType],
     ['Product', d.productCategory || d.product],
     ['Process', d.process],
@@ -544,7 +570,7 @@ window.editRecord=id=>{const r=records.find(x=>x.id===id);if(r)openForm(r.data.t
 function shareText(r){
   const d=r.data||{};
   let s=(TYPES[d.type]?.label||'Record')+'\n'+getTitle(r)+'\n';
-  [['Contact',d.personName],['Phone',d.phone],['Address',d.address],['City',d.city],['Area',d.area],['State',d.state],['Business Type',d.businessType],['Product',d.productCategory||d.product],['Rent',d.rent],['Advance',d.advance],['Sq. Ft.',d.sqft],['MOQ',d.moq],['Rate',d.rate],['Stage',d.stage]].forEach(([k,v])=>{if(v)s+=k+': '+v+'\n'});
+  [['Contact',d.personName],['Phone',d.phone],['Address',d.address],['City',d.city],['State',d.state],['Postal / ZIP Code',d.pincode],['Business Type',d.businessType],['Product',d.productCategory||d.product],['Rent',d.rent],['Advance',d.advance],['Sq. Ft.',d.sqft],['MOQ',d.moq],['Rate',d.rate],['Stage',d.stage]].forEach(([k,v])=>{if(v)s+=k+': '+v+'\n'});
   if(d.qualities?.length){
     s+='\nQualities:\n';
     d.qualities.forEach((q,i)=>s+=(i+1)+'. '+(q.name||'')+' | GSM '+(q.gsm||'-')+' | '+(q.rate||'-')+' / '+(q.unit||'-')+' | MOQ '+(q.moq||'-')+' | Colours '+(q.colors||'-')+' | Designs '+(q.designs||'-')+' | Width '+(q.width||'-')+'\n');
@@ -624,5 +650,10 @@ window.exportBackup=()=>{
   }
 })();
 </script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW error:', err));
+  });
+}
 </body>
 </html>
